@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExoVision: AI for Exoplanet Discovery</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    body { margin: 0; background-color: black; color: white; font-family: Arial, sans-serif; }
+    .tabs { display: flex; justify-content: center; gap: 10px; background: #111; padding: 10px; flex-wrap: wrap; }
+    .tab { padding: 10px 20px; cursor: pointer; border-radius: 10px; background: #333; color: white; transition: background 0.3s; }
+    .tab:hover { background: #444; }
+    .tab.active { background: #0077ff; }
+    .tab-content { display: none; padding: 20px; max-width: 1400px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+    #exoVisualization1, #exoVisualization2 { width: 100%; height: 500px; border: 1px solid #555; border-radius: 10px; margin-top: 20px; position: relative; overflow: hidden; }
+    input[type=text], input[type=file], textarea, select { padding: 10px; border-radius: 5px; border: 1px solid #555; background: #222; color: white; margin-top: 10px; }
+    input[type=text], select { width: 300px; }
+    textarea { width: 100%; max-width: 800px; height: 150px; font-family: monospace; }
+    button { padding: 10px 20px; border-radius: 5px; background: #0077ff; border: none; color: white; cursor: pointer; margin-left: 10px; margin-top: 10px; transition: background 0.3s; }
+    button:hover { background: #0099ff; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    .tutorial-box { margin-top: 20px; padding: 15px; background: #1a1a1a; border-radius: 10px; }
+    .ai-chat { background: #1a1a1a; border-radius: 10px; padding: 20px; margin-top: 20px; max-width: 900px; }
+    .chat-messages { height: 400px; overflow-y: auto; background: #0a0a0a; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+    .message { margin-bottom: 15px; padding: 10px; border-radius: 8px; }
+    .message.user { background: #0077ff; text-align: right; }
+    .message.ai { background: #333; }
+    .message.system { background: #1a4d1a; font-style: italic; font-size: 0.9em; }
+    .input-group { display: flex; gap: 10px; align-items: flex-start; }
+    .input-group textarea { flex: 1; margin: 0; }
+    .config-section { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-top: 15px; }
+    a { color: #00aaff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .loading { color: #ffaa00; }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">🚀 ExoVision: AI for Exoplanet Discovery</h1>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="epic1">EPIC 1 - Pro/Amateur Hunters</div>
+    <div class="tab" data-tab="epic2">EPIC 2 - Novice Explorers</div>
+    <div class="tab" data-tab="epic3">EPIC 3 - Future Work</div>
+    <div class="tab" data-tab="epic4">🤖 Exo AI Agent</div>
+  </div>
+
+  <!-- EPIC 1: Pro/Amateur Hunters -->
+  <div id="epic1" class="tab-content active">
+    <h2>Upload and Submit Exoplanet Data</h2>
+    <p style="color:#aaa;">For professional and amateur astronomers to upload custom exoplanet datasets for classification and visualization.</p>
+    
+    <input type="file" accept=".csv" id="fileInput"><br>
+    <button onclick="classifyData()">Classify Data</button>
+    <button onclick="submitData()">Submit Data</button>
+    <p id="status" style="color:#00ff88; margin-top:10px;"></p>
+
+    <h3>Visualize Exoplanets from CSV</h3>
+    <p style="color:#aaa;">CSV should have columns: <strong>pl_name</strong>, pl_rade, pl_bmasse, sy_dist, pl_orbper, st_rad. Example: HD_189733_b, 55_Cnc_e</p>
+
+    <input type="text" id="planetInput" placeholder="Enter pl_name from CSV (e.g., HD_189733_b)">
+    <button onclick="visualizeCSVPlanet()">Visualize</button>
+    <p id="planetInfo1" style="color:#00ff88; margin-top:10px;"></p>
+    <div id="exoVisualization1"></div>
+  </div>
+
+  <!-- EPIC 2: Novice Explorers -->
+  <div id="epic2" class="tab-content">
+    <div class="tutorial-box">
+      <h3>🎓 Quick Tutorial</h3>
+      <ol style="line-height:1.8;">
+        <li>Enter an exoplanet name in the search box or select from the dropdown.</li>
+        <li>Click "Load Exoplanet" to fetch real data from NASA's archive.</li>
+        <li>Explore the 3D visualization - drag to rotate, scroll to zoom.</li>
+        <li>Click the NASA Eyes link for more details.</li>
+      </ol>
+    </div>
+
+    <h2>Interactive Tutorial & Visualization</h2>
+    <p>Visualize NASA's confirmed exoplanets using the official NASA Exoplanet Archive API. All data is fetched in real-time from <a href='https://exoplanetarchive.ipac.caltech.edu/' target='_blank'>NASA Exoplanet Archive</a>.</p>
+    <p style="color: #aaa; font-size: 0.9em;">🔗 API Endpoint: <code style="background: #333; padding: 2px 8px; border-radius: 3px;">https://exoplanetarchive.ipac.caltech.edu/TAP/sync</code></p>
+
+    <h3>Search for an Exoplanet</h3>
+    <div style="margin-top: 15px;">
+      <select id="planetDropdown" onchange="loadFromDropdown()">
+        <option value="">-- Select a popular exoplanet --</option>
+        <option value="HD 189733 b">HD 189733 b (Hot Jupiter)</option>
+        <option value="Kepler-452 b">Kepler-452 b (Earth's Cousin)</option>
+        <option value="TRAPPIST-1 e">TRAPPIST-1 e (Habitable Zone)</option>
+        <option value="55 Cnc e">55 Cnc e (Super-Earth)</option>
+        <option value="Proxima Centauri b">Proxima Centauri b (Closest)</option>
+        <option value="Kepler-186 f">Kepler-186 f (Earth-size)</option>
+        <option value="TOI 700 d">TOI 700 d (Habitable Zone)</option>
+        <option value="Kepler-22 b">Kepler-22 b (Super-Earth)</option>
+        <option value="GJ 1214 b">GJ 1214 b (Water World)</option>
+        <option value="Kepler-62 f">Kepler-62 f (Super-Earth)</option>
+      </select>
+    </div>
+    <div style="margin-top: 10px;">
+      <input type="text" id="planetName" placeholder="Or enter exoplanet name (e.g., HD_189733_b)">
+      <button onclick="loadExoplanet()">Load Exoplanet</button>
+    </div>
+    <p id="planetInfo2" style="margin-top:10px; color:#00ff88;"></p>
+
+    <div id="exoVisualization2"></div>
+
+    <div style="margin-top:20px;" id="nasaLinks"></div>
+  </div>
+
+  <!-- EPIC 3: Future Work -->
+  <div id="epic3" class="tab-content">
+    <h2>🔬 Hyperparameter Tuning & Model Training</h2>
+    <p style="color:#aaa;">Advanced ML tools for researchers to optimize exoplanet classification models.</p>
+
+    <!-- Backend Connection -->
+    <div class="config-section">
+      <h3>⚙️ Backend Connection Configuration</h3>
+      <label for="mlApiEndpoint">ML Backend API URL:</label><br>
+      <input type="text" id="mlApiEndpoint" placeholder="http://localhost:5000/api/train" style="width: 500px;" value="">
+      <button onclick="testMLConnection()">Test Connection</button>
+      <p id="mlConnectionStatus" style="margin-top: 10px; color: #aaa;"></p>
+      
+      <details style="margin-top: 15px;">
+        <summary style="cursor: pointer; color: #0077ff;">📘 Backend Integration Guide</summary>
+        <div style="margin-top: 10px; padding: 15px; background: #0a0a0a; border-radius: 5px; font-size: 0.9em;">
+          <h4>Quick Setup Options:</h4>
+          
+          <h5 style="color: #00ff88;">Option 1: Flask API (Recommended)</h5>
+          <pre style="background: #000; padding: 10px; border-radius: 5px; overflow-x: auto;">
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from tensorflow import keras
+
+app = Flask(__name__)
+CORS(app)  # Enable CORS
+
+@app.route('/api/train', methods=['POST'])
+def train_model():
+    params = request.json
+    model_type = params['model_type']
+    hyperparams = params['hyperparameters']
+    
+    if model_type == 'random_forest':
+        # Train Random Forest
+        accuracy = train_rf(hyperparams)
+    else:
+        # Train Deep Learning
+        accuracy = train_dl(hyperparams)
+    
+    return jsonify({
+        'accuracy': accuracy,
+        'model_type': model_type,
+        'timestamp': time.time()
+    })
+
+if __name__ == '__main__':
+    app.run(port=5000)</pre>
+
+          <h5 style="color: #00ff88; margin-top: 15px;">Option 2: FastAPI (Modern)</h5>
+          <pre style="background: #000; padding: 10px; border-radius: 5px; overflow-x: auto;">
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"])
+
+class TrainRequest(BaseModel):
+    model_type: str
+    hyperparameters: dict
+
+@app.post("/api/train")
+async def train(request: TrainRequest):
+    # Your training logic
+    return {"accuracy": 0.95, "model_type": request.model_type}</pre>
+
+          <h5 style="color: #00ff88; margin-top: 15px;">Option 3: Google Colab (ngrok tunnel)</h5>
+          <pre style="background: #000; padding: 10px; border-radius: 5px; overflow-x: auto;">
+# In Google Colab:
+!pip install flask flask-cors pyngrok
+
+from pyngrok import ngrok
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/api/train', methods=['POST'])
+def train():
+    # Your code here
+    return jsonify({'accuracy': 0.95})
+
+# Open tunnel
+public_url = ngrok.connect(5000)
+print(f'Public URL: {public_url}')
+
+app.run(port=5000)</pre>
+
+          <h5 style="color: #00ff88; margin-top: 15px;">Option 4: Gradio Interface</h5>
+          <pre style="background: #000; padding: 10px; border-radius: 5px; overflow-x: auto;">
+import gradio as gr
+
+def train_model(model_type, n_estimators, max_depth):
+    # Your training logic
+    return {"accuracy": 0.95}
+
+iface = gr.Interface(
+    fn=train_model,
+    inputs=["text", "number", "number"],
+    outputs="json"
+)
+iface.launch(share=True)  # Creates public URL</pre>
+
+          <p style="margin-top: 15px;"><strong>Install requirements:</strong></p>
+          <pre style="background: #000; padding: 10px; border-radius: 5px;">pip install flask flask-cors fastapi uvicorn pyngrok gradio</pre>
+        </div>
+      </details>
+    </div>
+
+    <!-- Model Selection -->
+    <div class="config-section">
+      <h3>🤖 Select Model Type</h3>
+      <select id="modelType" onchange="updateModelParams()" style="width: 300px; padding: 10px;">
+        <option value="random_forest">Random Forest Classifier</option>
+        <option value="deep_learning">Deep Learning (Sequential)</option>
+      </select>
+    </div>
+
+    <!-- Random Forest Hyperparameters -->
+    <div id="rfParams" class="config-section">
+      <h3>🌲 Random Forest Hyperparameters</h3>
+      <div style="display: grid; gap: 20px;">
+        <div>
+          <label for="rf_n_estimators">Number of Trees (n_estimators): <span id="rf_n_estimators_val">100</span></label><br>
+          <input type="range" id="rf_n_estimators" min="10" max="500" value="100" step="10" style="width: 400px;" oninput="document.getElementById('rf_n_estimators_val').innerText = this.value">
+        </div>
+        
+        <div>
+          <label for="rf_max_depth">Max Depth: <span id="rf_max_depth_val">10</span></label><br>
+          <input type="range" id="rf_max_depth" min="1" max="50" value="10" step="1" style="width: 400px;" oninput="document.getElementById('rf_max_depth_val').innerText = this.value">
+        </div>
+        
+        <div>
+          <label for="rf_min_samples_split">Min Samples Split: <span id="rf_min_samples_split_val">2</span></label><br>
+          <input type="range" id="rf_min_samples_split" min="2" max="20" value="2" step="1" style="width: 400px;" oninput="document.getElementById('rf_min_samples_split_val').innerText = this.value">
+        </div>
+        
+        <div>
+          <label for="rf_min_samples_leaf">Min Samples Leaf: <span id="rf_min_samples_leaf_val">1</span></label><br>
+          <input type="range" id="rf_min_samples_leaf" min="1" max="20" value="1" step="1" style="width: 400px;" oninput="document.getElementById('rf_min_samples_leaf_val').innerText = this.value">
+        </div>
+        
+        <div>
+          <label for="rf_max_features">Max Features:</label><br>
+          <select id="rf_max_features" style="width: 200px; padding: 8px;">
+            <option value="sqrt">sqrt</option>
+            <option value="log2">log2</option>
+            <option value="None">None (all features)</option>
+          </select>
+        </div>
+        
+        <div>
+          <label for="rf_criterion">Criterion:</label><br>
+          <select id="rf_criterion" style="width: 200px; padding: 8px;">
+            <option value="gini">Gini</option>
+            <option value="entropy">Entropy</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deep Learning Hyperparameters -->
+    <div id="dlParams" class="config-section" style="display: none;">
+      <h3>🧠 Deep Learning (Sequential) Hyperparameters</h3>
+      <div style="display: grid; gap: 20px;">
+        <div>
+          <label for="dl_layers">Number of Hidden Layers: <span id="dl_layers_val">3</span></label><br>
+          <input type="range" id="dl_layers" min="1" max="10" value="3" step="1" style="width: 400px;" oninput="document.getElementById('dl_layers_val').innerText = this.value">
+        </div>
+        
+        <div>
+          <label for="dl_units">Units per Layer: <span id="dl_units_val">128</span></label><br>
+          <input type="range" id="dl_units" min="16" max="512" value="128" step="16" style="width: 400px;" oninput="document.getElementById('dl_units_val').innerText = this.value">
+        </div>
+        
+        <div>
+          <label for="dl_dropout">Dropout Rate: <span id="dl_dropout_val">0.3</span></label><br>
+          <input type="range" id="dl_dropout" min="0" max="0.8" value="0.3" step="0.05" style="width: 400px;" oninput="document.getElementById('dl_dropout_val').innerText = parseFloat(this.value).toFixed(2)">
+        </div>
+        
+        <div>
+          <label for="dl_learning_rate">Learning Rate: <span id="dl_learning_rate_val">0.001</span></label><br>
+          <input type="range" id="dl_learning_rate" min="0.0001" max="0.01" value="0.001" step="0.0001" style="width: 400px;" oninput="document.getElementById('dl_learning_rate_val').innerText = parseFloat(this.value).toFixed(4)">
+        </div>
+        
+        <div>
+          <label for="dl_batch_size">Batch Size: <span id="dl_batch_size_val">32</span></label><br>
+          <input type="range" id="dl_batch_size" min="8" max="256" value="32" step="8" style="width: 400px;" oninput="document.getElementById('dl_batch_size_val').innerText = this.value">
+        </div>
+        
+        <div>
+          <label for="dl_epochs">Epochs: <span id="dl_epochs_val">50</span></label><br>
+          <input type="range" id="dl_epochs" min="10" max="200" value="50" step="10" style="width: 400px;" oninput="document.getElementById('dl_epochs_val').innerText = this.value">
+        </div>
+        
+        <div>
+          <label for="dl_activation">Activation Function:</label><br>
+          <select id="dl_activation" style="width: 200px; padding: 8px;">
+            <option value="relu">ReLU</option>
+            <option value="tanh">Tanh</option>
+            <option value="sigmoid">Sigmoid</option>
+            <option value="elu">ELU</option>
+          </select>
+        </div>
+        
+        <div>
+          <label for="dl_optimizer">Optimizer:</label><br>
+          <select id="dl_optimizer" style="width: 200px; padding: 8px;">
+            <option value="adam">Adam</option>
+            <option value="sgd">SGD</option>
+            <option value="rmsprop">RMSprop</option>
+            <option value="adamax">Adamax</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Train Button -->
+    <div style="margin-top: 30px; text-align: center;">
+      <button onclick="trainModel()" style="padding: 15px 40px; font-size: 18px; background: #00ff88; color: black; font-weight: bold;">
+        🚀 Train Model with Current Hyperparameters
+      </button>
+      <button onclick="resetParams()" style="padding: 15px 40px; font-size: 18px; margin-left: 15px;">
+        🔄 Reset to Defaults
+      </button>
+    </div>
+
+    <!-- Results Dashboard -->
+    <div class="config-section" style="margin-top: 30px;">
+      <h3>📊 Training Results Dashboard</h3>
+      <div id="trainingStatus" style="padding: 15px; background: #0a0a0a; border-radius: 8px; margin-bottom: 15px;">
+        <p style="color: #aaa;">No training results yet. Configure hyperparameters and click "Train Model" to begin.</p>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+        <div style="background: #1a1a1a; padding: 20px; border-radius: 10px; border-left: 4px solid #0077ff;">
+          <h4 style="margin: 0 0 10px 0; color: #0077ff;">Model Accuracy</h4>
+          <p id="accuracyResult" style="font-size: 32px; font-weight: bold; margin: 0; color: #00ff88;">--%</p>
+        </div>
+        
+        <div style="background: #1a1a1a; padding: 20px; border-radius: 10px; border-left: 4px solid #ff6600;">
+          <h4 style="margin: 0 0 10px 0; color: #ff6600;">Training Time</h4>
+          <p id="trainingTime" style="font-size: 32px; font-weight: bold; margin: 0;">--s</p>
+        </div>
+        
+        <div style="background: #1a1a1a; padding: 20px; border-radius: 10px; border-left: 4px solid #ff0066;">
+          <h4 style="margin: 0 0 10px 0; color: #ff0066;">Loss</h4>
+          <p id="lossResult" style="font-size: 32px; font-weight: bold; margin: 0;">--</p>
+        </div>
+        
+        <div style="background: #1a1a1a; padding: 20px; border-radius: 10px; border-left: 4px solid #9900ff;">
+          <h4 style="margin: 0 0 10px 0; color: #9900ff;">F1 Score</h4>
+          <p id="f1Result" style="font-size: 32px; font-weight: bold; margin: 0;">--</p>
+        </div>
+      </div>
+      
+      <div style="margin-top: 20px; background: #1a1a1a; padding: 20px; border-radius: 10px;">
+        <h4>Training History</h4>
+        <div id="trainingHistory" style="max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
+          <p style="color: #aaa;">Training logs will appear here...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EPIC 4: Exo AI Agent -->
+  <div id="epic4" class="tab-content">
+    <h2>🤖 Exo AI Agent - Interactive Assistant</h2>
+    <p style="color:#aaa;">Chat with our AI agent to get insights about exoplanets, analyze data, and get recommendations.</p>
+
+    <div class="config-section">
+      <h3>⚙️ Backend Configuration</h3>
+      <label for="apiEndpoint">API Endpoint URL:</label><br>
+      <input type="text" id="apiEndpoint" placeholder="https://your-backend.com/api/chat" style="width: 500px;" value="">
+      <button onclick="testConnection()">Test Connection</button>
+      <p id="connectionStatus" style="margin-top: 10px; color: #aaa;"></p>
+      
+      <details style="margin-top: 15px;">
+        <summary style="cursor: pointer; color: #0077ff;">📘 API Integration Guide</summary>
+        <div style="margin-top: 10px; padding: 10px; background: #0a0a0a; border-radius: 5px; font-size: 0.9em;">
+          <p><strong>Expected API Format:</strong></p>
+          <pre style="background: #000; padding: 10px; border-radius: 5px; overflow-x: auto;">
+POST /api/chat
+Content-Type: application/json
+
+{
+  "message": "What is HD 189733 b?",
+  "context": {
+    "currentPlanet": "HD 189733 b",
+    "userType": "novice"
+  }
+}
+
+Response:
+{
+  "reply": "HD 189733 b is a hot Jupiter...",
+  "suggestions": ["Learn more about hot Jupiters", "Compare with Earth"]
+}</pre>
+          <p style="margin-top: 10px;"><strong>Features your backend can implement:</strong></p>
+          <ul>
+            <li>Answer questions about specific exoplanets</li>
+            <li>Compare multiple exoplanets</li>
+            <li>Explain classification results from EPIC 1</li>
+            <li>Suggest interesting exoplanets to explore</li>
+            <li>Provide educational content for novices</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+    <div class="ai-chat">
+      <h3>💬 Chat Interface</h3>
+      <div class="chat-messages" id="chatMessages">
+        <div class="message system">
+          Welcome to Exo AI Agent! I can help you explore exoplanets, analyze data, and answer your questions about distant worlds. Try asking me about specific exoplanets or general concepts!
+        </div>
+        <div class="message ai">
+          Hi! I'm your Exo AI Agent. You can ask me things like:
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            <li>"Tell me about HD 189733 b"</li>
+            <li>"What makes an exoplanet habitable?"</li>
+            <li>"Compare TRAPPIST-1 e with Earth"</li>
+            <li>"What are hot Jupiters?"</li>
+          </ul>
+          What would you like to know?
+        </div>
+      </div>
+      
+      <div class="input-group">
+        <textarea id="userMessage" placeholder="Ask me anything about exoplanets..." rows="3"></textarea>
+        <button onclick="sendMessage()" style="margin: 0;">Send</button>
+      </div>
+      
+      <div style="margin-top: 15px;">
+        <button onclick="clearChat()">Clear Chat</button>
+        <button onclick="loadExampleQuery('What is HD 189733 b?')">Example 1</button>
+        <button onclick="loadExampleQuery('What makes a planet habitable?')">Example 2</button>
+        <button onclick="loadExampleQuery('Compare Earth with Kepler-452 b')">Example 3</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let csvData = [];
+    let scene1, camera1, renderer1, controls1, planetMesh1, starMesh1;
+    let scene2, camera2, renderer2, controls2, planet2, star2;
+    let chatHistory = [];
+    let epic2Initialized = false;
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        const tabId = tab.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+        
+        // Initialize EPIC 2 when tab is first opened
+        if (tabId === 'epic2' && !epic2Initialized) {
+          initVisualization2();
+          epic2Initialized = true;
+        }
+      });
+    });
+
+    // EPIC 1 Functions
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const text = event.target.result;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',');
+        csvData = lines.slice(1).map(line => {
+          const values = line.split(',');
+          let obj = {};
+          headers.forEach((h, i) => obj[h.trim()] = values[i] ? values[i].trim() : '');
+          return obj;
+        }).filter(obj => obj.pl_name);
+        document.getElementById('status').innerText = `CSV loaded with ${csvData.length} planets. You can now visualize planets using their pl_name.`;
+      };
+      reader.readAsText(file);
+    });
+
+    function submitData() {
+      document.getElementById('status').innerText = 'Submitting new data... (simulated)';
+      setTimeout(() => document.getElementById('status').innerText = 'Data submitted successfully! Ready to classify.', 1500);
+    }
+
+    function classifyData() {
+      document.getElementById('status').innerText = 'Classifying new data... (simulated)';
+      setTimeout(() => document.getElementById('status').innerText = 'Classification complete. Visualization updated.', 1500);
+    }
+
+    function initVisualization1(container) {
+      scene1 = new THREE.Scene();
+      camera1 = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+      renderer1 = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer1.setSize(container.clientWidth, container.clientHeight);
+      renderer1.setClearColor(0x000000);
+      container.innerHTML = '';
+      container.appendChild(renderer1.domElement);
+
+      const light = new THREE.PointLight(0xffffff, 1.5);
+      light.position.set(0,0,0);
+      scene1.add(light);
+
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene1.add(ambientLight);
+
+      starMesh1 = new THREE.Mesh(new THREE.SphereGeometry(1.5,32,32), new THREE.MeshBasicMaterial({ color: 0xffffaa }));
+      scene1.add(starMesh1);
+
+      planetMesh1 = new THREE.Mesh(new THREE.SphereGeometry(0.3,32,32), new THREE.MeshStandardMaterial({ color: 0x3366ff }));
+      planetMesh1.position.x = 4;
+      scene1.add(planetMesh1);
+
+      controls1 = new THREE.OrbitControls(camera1, renderer1.domElement);
+      controls1.enableDamping = true;
+      controls1.dampingFactor = 0.05;
+      camera1.position.z = 8;
+      camera1.position.y = 3;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        planetMesh1.position.x = Math.cos(Date.now() * 0.001) * 4;
+        planetMesh1.position.z = Math.sin(Date.now() * 0.001) * 4;
+        planetMesh1.rotation.y += 0.01;
+        controls1.update();
+        renderer1.render(scene1, camera1);
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera1.aspect = container.clientWidth / container.clientHeight;
+        camera1.updateProjectionMatrix();
+        renderer1.setSize(container.clientWidth, container.clientHeight);
+      });
+    }
+
+    function visualizeCSVPlanet(defaultName='HD_189733_b') {
+      const planetName = document.getElementById('planetInput').value.trim().replace(/_/g, ' ') || defaultName.replace(/_/g, ' ');
+      const planetInfo = document.getElementById('planetInfo1');
+      let planetData = csvData.find(p => p.pl_name.replace(/_/g, ' ') === planetName);
+      
+      // Demo if CSV not loaded or planet not found
+      if (!planetData) {
+        const demoPlanets = {
+          'HD 189733 b': { pl_name: 'HD 189733 b', pl_rade: 1.138, pl_bmasse: 1.13, sy_dist: 19.3, pl_orbper: 2.219, st_rad: 0.805 },
+          'TRAPPIST-1 e': { pl_name: 'TRAPPIST-1 e', pl_rade: 0.91, pl_bmasse: 0.62, sy_dist: 12.1, pl_orbper: 6.1, st_rad: 0.121 },
+          '55 Cnc e': { pl_name: '55 Cnc e', pl_rade: 1.875, pl_bmasse: 8.08, sy_dist: 12.6, pl_orbper: 0.736, st_rad: 0.943 }
+        };
+        planetData = demoPlanets[planetName] || demoPlanets['HD 189733 b'];
+      }
+
+      planetInfo.innerHTML = `<strong>${planetData.pl_name}</strong><br>Radius: ${planetData.pl_rade || 'N/A'} Earth radii | Mass: ${planetData.pl_bmasse || 'N/A'} Earth masses<br>Distance: ${planetData.sy_dist ? (planetData.sy_dist * 3.26156).toFixed(2) + ' ly' : 'N/A'} | Orbital Period: ${planetData.pl_orbper || 'N/A'} days<br><a href='https://eyes.nasa.gov/apps/exo/#/planet/${planetData.pl_name.replace(/ /g,'_')}' target='_blank'>View ${planetData.pl_name} on NASA Eyes →</a>`;
+
+      const container = document.getElementById('exoVisualization1');
+      if (!scene1) initVisualization1(container);
+
+      const scaledRadius = Math.max(0.2, Math.min((planetData.pl_rade || 1) * 0.3, 2));
+      planetMesh1.geometry.dispose();
+      planetMesh1.geometry = new THREE.SphereGeometry(scaledRadius,32,32);
+
+      const starRadius = Math.max(0.5, Math.min((planetData.st_rad || 1) * 1.5, 2));
+      starMesh1.geometry.dispose();
+      starMesh1.geometry = new THREE.SphereGeometry(starRadius,32,32);
+    }
+
+    // EPIC 2 Functions
+    function initVisualization2() {
+      const container = document.getElementById('exoVisualization2');
+      scene2 = new THREE.Scene();
+      camera2 = new THREE.PerspectiveCamera(75, container.clientWidth/container.clientHeight, 0.1, 1000);
+      renderer2 = new THREE.WebGLRenderer({antialias:true, alpha:true});
+      renderer2.setSize(container.clientWidth, container.clientHeight);
+      renderer2.setClearColor(0x000000);
+      container.innerHTML = '';
+      container.appendChild(renderer2.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene2.add(ambientLight);
+      const pointLight = new THREE.PointLight(0xffffff, 2);
+      pointLight.position.set(0,0,0);
+      scene2.add(pointLight);
+
+      star2 = new THREE.Mesh(new THREE.SphereGeometry(1.5,32,32), new THREE.MeshBasicMaterial({color:0xffdd66}));
+      scene2.add(star2);
+
+      planet2 = new THREE.Mesh(new THREE.SphereGeometry(0.4,32,32), new THREE.MeshStandardMaterial({color:0x3366ff}));
+      planet2.position.x = 4;
+      scene2.add(planet2);
+
+      controls2 = new THREE.OrbitControls(camera2, renderer2.domElement);
+      controls2.enableDamping = true;
+      controls2.dampingFactor = 0.05;
+      camera2.position.z = 8;
+      camera2.position.y = 3;
+
+      // Load demo planet immediately
+      loadExoplanet('HD 189733 b');
+
+      animate2();
+      window.addEventListener('resize', () => {
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        camera2.aspect = width/height;
+        camera2.updateProjectionMatrix();
+        renderer2.setSize(width,height);
+      });
+    }
+
+    function animate2() {
+      requestAnimationFrame(animate2);
+      if (planet2) {
+        planet2.position.x = Math.cos(Date.now() * 0.001) * 4;
+        planet2.position.z = Math.sin(Date.now() * 0.001) * 4;
+        planet2.rotation.y += 0.01;
+      }
+      controls2.update();
+      renderer2.render(scene2, camera2);
+    }
+
+    function loadFromDropdown() {
+      const select = document.getElementById('planetDropdown');
+      const planetName = select.value;
+      if (planetName) {
+        document.getElementById('planetName').value = planetName;
+        loadExoplanet(planetName);
+      }
+    }
+
+    async function loadExoplanet(planetNameParam) {
+      const rawName = (planetNameParam || document.getElementById('planetName').value.trim());
+      const name = rawName.replace(/_/g, ' ');
+      const infoEl = document.getElementById('planetInfo2');
+      const linksEl = document.getElementById('nasaLinks');
+      if (!rawName) {
+        infoEl.innerText = 'Please enter an exoplanet name.';
+        return;
+      }
+      infoEl.innerHTML = '<span class="loading">🔍 Fetching from NASA Exoplanet Archive...</span>';
+      
+      try {
+        // Try exact match first (with spaces)
+        let query = `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name,pl_rade,pl_bmasse,sy_dist,pl_orbper,st_rad,disc_year,discoverymethod+from+ps+where+pl_name='${encodeURIComponent(name)}'&format=json`;
+        let url = `https://api.allorigins.win/get?url=${encodeURIComponent(query)}&callback=`;
+        
+        let res = await fetch(url);
+        let json = await res.json();
+        let data = JSON.parse(json.contents);
+        
+        // If no exact match, try with wildcards for partial match
+        if (!data || data.length === 0) {
+          infoEl.innerHTML = '<span class="loading">🔍 Trying partial name match...</span>';
+          const searchParts = name.split(' ');
+          const baseName = searchParts[0]; // e.g., "GJ" or "HD"
+          
+          query = `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name,pl_rade,pl_bmasse,sy_dist,pl_orbper,st_rad,disc_year,discoverymethod+from+ps+where+pl_name+like+'${encodeURIComponent(baseName)}%25'&format=json`;
+          url = `https://api.allorigins.win/get?url=${encodeURIComponent(query)}&callback=`;
+          
+          res = await fetch(url);
+          json = await res.json();
+          data = JSON.parse(json.contents);
+          
+          // Filter results to find closest match
+          if (data && data.length > 0) {
+            // Try to find exact match in results (case insensitive)
+            const exactMatch = data.find(p => p.pl_name.toLowerCase() === name.toLowerCase());
+            if (exactMatch) {
+              data = [exactMatch];
+            } else {
+              // Find closest match containing the search terms
+              const nameLower = name.toLowerCase();
+              const closeMatch = data.find(p => p.pl_name.toLowerCase().includes(nameLower));
+              if (closeMatch) {
+                data = [closeMatch];
+              } else {
+                // Just use first result
+                data = [data[0]];
+              }
+            }
+          }
+        }
+        
+        if (data && data.length > 0) {
+          const exactMatch = data[0].pl_name.toLowerCase() === name.toLowerCase();
+          infoEl.innerHTML = exactMatch ? 
+            '<span style="color: #00ff88;">✅ Live data from NASA Exoplanet Archive</span>' :
+            '<span style="color: #ffaa00;">⚠️ Showing closest match from NASA Archive</span>';
+          displayPlanetData(data[0], infoEl, linksEl, true);
+          return;
+        }
+        
+        throw new Error('No data found in NASA archive');
+        
+      } catch(e) {
+        console.error('NASA API Error:', e);
+        infoEl.innerHTML = '<span style="color: #ff6666;">❌ Unable to fetch from NASA API. Loading from local database...</span>';
+        
+        // Fallback to local database
+        const knownPlanets = {
+          'HD 189733 b': { pl_name: 'HD 189733 b', pl_rade: 1.138, pl_bmasse: 1.13, sy_dist: 19.3, pl_orbper: 2.219, st_rad: 0.805, disc_year: 2005, discoverymethod: 'Transit' },
+          'Kepler-452 b': { pl_name: 'Kepler-452 b', pl_rade: 1.6, pl_bmasse: 5.0, sy_dist: 430, pl_orbper: 384.8, st_rad: 1.11, disc_year: 2015, discoverymethod: 'Transit' },
+          'TRAPPIST-1 e': { pl_name: 'TRAPPIST-1 e', pl_rade: 0.91, pl_bmasse: 0.62, sy_dist: 12.43, pl_orbper: 6.1, st_rad: 0.121, disc_year: 2017, discoverymethod: 'Transit' },
+          '55 Cnc e': { pl_name: '55 Cnc e', pl_rade: 1.875, pl_bmasse: 8.08, sy_dist: 12.6, pl_orbper: 0.736, st_rad: 0.943, disc_year: 2004, discoverymethod: 'Radial Velocity' },
+          'Proxima Centauri b': { pl_name: 'Proxima Centauri b', pl_rade: 1.07, pl_bmasse: 1.27, sy_dist: 1.3, pl_orbper: 11.2, st_rad: 0.154, disc_year: 2016, discoverymethod: 'Radial Velocity' },
+          'Kepler-186 f': { pl_name: 'Kepler-186 f', pl_rade: 1.17, pl_bmasse: 1.44, sy_dist: 178, pl_orbper: 129.9, st_rad: 0.544, disc_year: 2014, discoverymethod: 'Transit' },
+          'TOI 700 d': { pl_name: 'TOI 700 d', pl_rade: 1.19, pl_bmasse: 1.72, sy_dist: 31.1, pl_orbper: 37.4, st_rad: 0.422, disc_year: 2020, discoverymethod: 'Transit' },
+          'Kepler-22 b': { pl_name: 'Kepler-22 b', pl_rade: 2.4, pl_bmasse: 9.1, sy_dist: 190, pl_orbper: 289.9, st_rad: 0.979, disc_year: 2011, discoverymethod: 'Transit' },
+          'GJ 1214 b': { pl_name: 'GJ 1214 b', pl_rade: 2.678, pl_bmasse: 6.26, sy_dist: 14.6, pl_orbper: 1.58, st_rad: 0.211, disc_year: 2009, discoverymethod: 'Radial Velocity' },
+          'GJ 1132 b': { pl_name: 'GJ 1132 b', pl_rade: 1.16, pl_bmasse: 1.66, sy_dist: 12.6, pl_orbper: 1.629, st_rad: 0.207, disc_year: 2015, discoverymethod: 'Transit' },
+          'GJ 1132 c': { pl_name: 'GJ 1132 c', pl_rade: 1.19, pl_bmasse: 2.64, sy_dist: 12.6, pl_orbper: 8.93, st_rad: 0.207, disc_year: 2018, discoverymethod: 'Transit' },
+          'Kepler-62 f': { pl_name: 'Kepler-62 f', pl_rade: 1.41, pl_bmasse: 2.8, sy_dist: 368, pl_orbper: 267.3, st_rad: 0.63, disc_year: 2013, discoverymethod: 'Transit' }
+        };
+        
+        const normalizedName = name.trim();
+        let planetData = knownPlanets[normalizedName];
+        
+        if (!planetData) {
+          const match = Object.keys(knownPlanets).find(k => k.toLowerCase() === normalizedName.toLowerCase());
+          if (match) planetData = knownPlanets[match];
+        }
+        
+        if (planetData) {
+          setTimeout(() => {
+            infoEl.innerHTML = '<span style="color: #ffaa00;">📚 Loaded from local database</span>';
+            displayPlanetData(planetData, infoEl, linksEl, false);
+          }, 500);
+        } else {
+          setTimeout(() => {
+            const nasaEyesName = name.replace(/ /g, '_');
+            infoEl.innerHTML = `<span style="color: #ff6666;">❌ Planet '${name}' not found in database</span><br><br>Try: HD 189733 b, Kepler-452 b, TRAPPIST-1 e, GJ 1132 c, Proxima Centauri b<br><br>💡 However, you can still view it on NASA Eyes if it exists:`;
+            linksEl.innerHTML = `<a href='https://eyes.nasa.gov/apps/exo/#/planet/${nasaEyesName}' target='_blank' style='color:#00aaff'>🔭 Try viewing ${name} on NASA Eyes →</a>`;
+          }, 500);
+        }
+      }
+    }
+    
+    function displayPlanetData(p, infoEl, linksEl, fromNASA) {
+      let distanceLy = p.sy_dist ? (p.sy_dist * 3.26156).toFixed(2) : 'unknown';
+      
+      const dataSource = fromNASA ? 
+        '<span style="color: #00ff88;">✅ Live data from NASA Exoplanet Archive</span>' : 
+        '<span style="color: #ffaa00;">📚 Data from local database</span>';
+      
+      const additionalInfo = (p.disc_year || p.discoverymethod) ? 
+        `<br>Discovered: ${p.disc_year || 'Unknown'} | Method: ${p.discoverymethod || 'Unknown'}` : '';
+      
+      infoEl.innerHTML = `${dataSource}<br><br><strong>${p.pl_name}</strong><br>Radius: ${p.pl_rade || 'N/A'} Earth radii | Mass: ${p.pl_bmasse || 'N/A'} Earth masses<br>Distance: ${distanceLy} light-years | Orbital Period: ${p.pl_orbper || 'N/A'} days${additionalInfo}`;
+      
+      // Dynamic NASA Eyes link - replaces spaces with underscores
+      const nasaEyesName = p.pl_name.replace(/ /g, '_');
+      linksEl.innerHTML = `<a href='https://eyes.nasa.gov/apps/exo/#/planet/${nasaEyesName}' target='_blank' style='color:#00aaff'>🔭 View ${p.pl_name} on NASA Eyes →</a> | <a href='https://exoplanetarchive.ipac.caltech.edu/overview/${nasaEyesName}' target='_blank' style='color:#00aaff'>📊 NASA Archive Details →</a>`;
+      
+      if (planet2) {
+        planet2.geometry.dispose();
+        planet2.geometry = new THREE.SphereGeometry(Math.max(0.2, Math.min((p.pl_rade || 1)*0.3, 2)),32,32);
+      }
+    }
+
+    // EPIC 4: AI Agent Functions
+    function testConnection() {
+      const endpoint = document.getElementById('apiEndpoint').value.trim();
+      const statusEl = document.getElementById('connectionStatus');
+      
+      if (!endpoint) {
+        statusEl.innerHTML = '<span style="color: #ff6666;">❌ Please enter an API endpoint URL</span>';
+        return;
+      }
+      
+      statusEl.innerHTML = '<span class="loading">⏳ Testing connection...</span>';
+      
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'test', context: {} })
+      })
+      .then(res => res.json())
+      .then(data => {
+        statusEl.innerHTML = '<span style="color: #00ff88;">✅ Connection successful! Backend is ready.</span>';
+      })
+      .catch(err => {
+        statusEl.innerHTML = '<span style="color: #ff6666;">❌ Connection failed. Using demo mode with simulated responses.</span>';
+      });
+    }
+
+    async function sendMessage() {
+      const messageInput = document.getElementById('userMessage');
+      const message = messageInput.value.trim();
+      
+      if (!message) return;
+      
+      // Add user message to chat
+      addMessageToChat('user', message);
+      messageInput.value = '';
+      
+      // Add loading indicator
+      const loadingId = 'loading-' + Date.now();
+      addMessageToChat('ai', '<span class="loading">🤔 Thinking...</span>', loadingId);
+      
+      const endpoint = document.getElementById('apiEndpoint').value.trim();
+      
+      if (endpoint) {
+        // Try to use backend
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: message,
+              context: {
+                chatHistory: chatHistory.slice(-5),
+                currentTab: getCurrentTab()
+              }
+            })
+          });
+          
+          const data = await response.json();
+          removeMessage(loadingId);
+          addMessageToChat('ai', data.reply || 'Sorry, I received an invalid response from the backend.');
+          
+          if (data.suggestions && data.suggestions.length > 0) {
+            addMessageToChat('system', 'Suggestions: ' + data.suggestions.join(', '));
+          }
+        } catch (error) {
+          removeMessage(loadingId);
+          addMessageToChat('ai', 'Unable to connect to backend. Using demo mode response.');
+          setTimeout(() => addMessageToChat('ai', getDemoResponse(message)), 500);
+        }
+      } else {
+        // Use demo mode
+        removeMessage(loadingId);
+        setTimeout(() => addMessageToChat('ai', getDemoResponse(message)), 800);
+      }
+    }
+
+    function addMessageToChat(type, content, id) {
+      const messagesDiv = document.getElementById('chatMessages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+      if (id) messageDiv.id = id;
+      messageDiv.innerHTML = content;
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      
+      if (type === 'user' || type === 'ai') {
+        chatHistory.push({ role: type, content: content });
+      }
+    }
+
+    function removeMessage(id) {
+      const msg = document.getElementById(id);
+      if (msg) msg.remove();
+    }
+
+    function getDemoResponse(message) {
+      const lowerMsg = message.toLowerCase();
+      
+      // Pattern matching for demo responses
+      if (lowerMsg.includes('hd 189733') || lowerMsg.includes('hd189733')) {
+        return `HD 189733 b is a fascinating exoplanet! It's a "hot Jupiter" - a gas giant that orbits very close to its star. Here are some key facts:<br><br>
+        • <strong>Size:</strong> About 1.14 times the radius of Jupiter<br>
+        • <strong>Distance:</strong> Located about 64 light-years from Earth<br>
+        • <strong>Temperature:</strong> Extremely hot, around 1,200°C (2,192°F)<br>
+        • <strong>Unique Feature:</strong> Scientists believe it rains glass sideways on this planet due to extreme winds!<br>
+        • <strong>Orbital Period:</strong> Completes one orbit around its star in just 2.2 days<br><br>
+        Would you like to know more about hot Jupiters or explore similar exoplanets?`;
+      }
+      
+      if (lowerMsg.includes('trappist') || lowerMsg.includes('trappist-1')) {
+        return `The TRAPPIST-1 system is one of the most exciting discoveries in exoplanet science! It contains 7 Earth-sized planets, with TRAPPIST-1 e being particularly interesting:<br><br>
+        • <strong>Habitable Zone:</strong> TRAPPIST-1 e orbits in the habitable zone where liquid water could exist<br>
+        • <strong>Size:</strong> Very close to Earth's size (0.91 Earth radii)<br>
+        • <strong>Distance:</strong> Only 41 light-years away - relatively close in cosmic terms<br>
+        • <strong>Star Type:</strong> Orbits a cool red dwarf star<br>
+        • <strong>Potential:</strong> One of the best candidates for finding life outside our solar system<br><br>
+        The entire TRAPPIST-1 system is a prime target for the James Webb Space Telescope!`;
+      }
+      
+      if (lowerMsg.includes('habitable') || lowerMsg.includes('life')) {
+        return `Great question! For a planet to be potentially habitable, scientists look for several key factors:<br><br>
+        🌡️ <strong>Habitable Zone:</strong> The planet must orbit at the right distance from its star for liquid water to exist<br>
+        🪐 <strong>Size & Mass:</strong> Rocky planets similar to Earth are more promising than gas giants<br>
+        🌫️ <strong>Atmosphere:</strong> A stable atmosphere that can retain heat and protect the surface<br>
+        💧 <strong>Water:</strong> Evidence of water in liquid, ice, or vapor form<br>
+        🧲 <strong>Magnetic Field:</strong> Protection from harmful stellar radiation<br><br>
+        Some of the most promising candidates include: TRAPPIST-1 e, Kepler-452 b, Proxima Centauri b, and TOI 700 d.<br><br>
+        Would you like to learn more about any of these worlds?`;
+      }
+      
+      if (lowerMsg.includes('hot jupiter')) {
+        return `Hot Jupiters are a fascinating class of exoplanets! Here's what makes them special:<br><br>
+        🔥 <strong>Definition:</strong> Gas giant planets similar in size to Jupiter but orbit extremely close to their stars<br>
+        ⚡ <strong>Extreme Conditions:</strong> Surface temperatures often exceed 1,000°C<br>
+        🌪️ <strong>Fast Orbits:</strong> Complete their orbits in just a few days<br>
+        🤔 <strong>Mystery:</strong> Scientists are still figuring out how they formed so close to their stars<br><br>
+        Famous examples include: HD 189733 b, 51 Pegasi b (the first discovered), and WASP-12b.<br><br>
+        These planets challenge our understanding of planetary formation!`;
+      }
+      
+      if (lowerMsg.includes('compare') || lowerMsg.includes('vs') || lowerMsg.includes('versus')) {
+        return `I'd love to help you compare exoplanets! To give you the best comparison, please specify which planets you'd like to compare. For example:<br><br>
+        • "Compare Earth with Kepler-452 b"<br>
+        • "How does TRAPPIST-1 e compare to Mars?"<br>
+        • "Compare HD 189733 b with Jupiter"<br><br>
+        I can compare their size, mass, orbital period, distance from Earth, and potential habitability!`;
+      }
+      
+      if (lowerMsg.includes('kepler-452') || lowerMsg.includes('kepler 452')) {
+        return `Kepler-452 b is often called "Earth's cousin"! Here's why:<br><br>
+        🌍 <strong>Earth-like:</strong> About 60% larger than Earth (super-Earth)<br>
+        ☀️ <strong>Sun-like Star:</strong> Orbits a G-type star similar to our Sun<br>
+        🌡️ <strong>Habitable Zone:</strong> Located in the habitable zone for 1.5 billion years<br>
+        📅 <strong>Long Year:</strong> Orbital period of 385 days - close to Earth's year!<br>
+        📍 <strong>Distance:</strong> About 1,400 light-years from Earth<br><br>
+        It's one of the most Earth-like exoplanets discovered, though we need more data to know if it has water or an atmosphere.`;
+      }
+      
+      if (lowerMsg.includes('how many') || lowerMsg.includes('count')) {
+        return `As of now, astronomers have confirmed over <strong>5,500 exoplanets</strong> across more than 4,000 planetary systems! 🌟<br><br>
+        📊 <strong>Key Statistics:</strong><br>
+        • About 30% are gas giants<br>
+        • 31% are super-Earths<br>
+        • 35% are Neptune-like<br>
+        • 4% are terrestrial (Earth-like)<br><br>
+        🔭 <strong>Discovery Methods:</strong><br>
+        • Transit method (most common)<br>
+        • Radial velocity<br>
+        • Direct imaging<br>
+        • Gravitational microlensing<br><br>
+        And there are thousands more candidates waiting to be confirmed! The James Webb Space Telescope is discovering new ones regularly.`;
+      }
+      
+      // Default responses
+      const defaultResponses = [
+        `That's an interesting question about exoplanets! While I'm in demo mode, I can provide general information. Try asking about:<br>
+        • Specific exoplanets (HD 189733 b, TRAPPIST-1 e, Kepler-452 b)<br>
+        • Habitability and conditions for life<br>
+        • Types of exoplanets (hot Jupiters, super-Earths, etc.)<br>
+        • Discovery methods and statistics<br><br>
+        Connect a backend API for more detailed, AI-powered responses!`,
+        
+        `I'd love to help you explore that! For the most accurate and detailed information, consider connecting your AI backend through the configuration section above. In the meantime, try asking about popular exoplanets or basic concepts!`,
+        
+        `Interesting question! In demo mode, I have limited responses. For full AI capabilities, please configure your backend API endpoint. Try asking about HD 189733 b, TRAPPIST-1 e, or what makes a planet habitable!`
+      ];
+      
+      return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+    }
+
+    function clearChat() {
+      document.getElementById('chatMessages').innerHTML = `
+        <div class="message system">
+          Chat cleared. Welcome back! Ask me anything about exoplanets.
+        </div>
+      `;
+      chatHistory = [];
+    }
+
+    function loadExampleQuery(query) {
+      document.getElementById('userMessage').value = query;
+    }
+
+    function getCurrentTab() {
+      const activeTabs = document.querySelectorAll('.tab.active');
+      return activeTabs[0] ? activeTabs[0].getAttribute('data-tab') : 'unknown';
+    }
+
+    // Handle Enter key in textarea
+    document.getElementById('userMessage').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Initialize EPIC 1 with demo planet on page load
+    window.onload = () => {
+      visualizeCSVPlanet();
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Langflow Chat Tab</title>
+  <script
+    src="https://cdn.jsdelivr.net/gh/logspace-ai/langflow-embedded-chat@v1.0.7/dist/build/static/js/bundle.min.js">
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 50vh;
+    }
+
+    h2 {
+      color: #00aaff;
+      margin-bottom: 20px;
+    }
+
+
+  </style>
+</head>
+<body>
+  <h2>🧠 Langflow Instructions Assistant</h2>
+
+  <!-- Below is for latest code to be put in -->
+  <langflow-chat
+    window_title="Instructions agent"
+    flow_id="0da7a30b-34be-4339-ba54-c2d152ecbbca"
+    host_url="http://localhost:7860">
+  </langflow-chat>
+  <!-- End latest code -->
+  
+</body>
+</html>
