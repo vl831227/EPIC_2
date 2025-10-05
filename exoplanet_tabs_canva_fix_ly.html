@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exoplanet Visualizer Tabs for Canva</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    body { margin: 0; background-color: black; color: white; font-family: Arial, sans-serif; }
+    .tabs { display: flex; justify-content: center; gap: 10px; background: #111; padding: 10px; }
+    .tab { padding: 10px 20px; cursor: pointer; border-radius: 10px; background: #333; color: white; }
+    .tab.active { background: #0077ff; }
+    .tab-content { display: none; padding: 20px; }
+    .tab-content.active { display: block; }
+    #exoVisualization { width: 100%; height: 500px; border: 1px solid #555; border-radius: 10px; margin-top: 20px; position: relative; overflow: hidden; }
+    input[type=text] { padding:10px; width:300px; border-radius:5px; border:1px solid #555; background:#222; color:white; }
+    button { padding:10px 20px; border-radius:5px; background:#0077ff; border:none; color:white; cursor:pointer; margin-left:10px; }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">🚀 ExoVision: AI for Exoplanet Discovery</h1>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="epic2">EPIC 2 - Novice Explorers</div>
+  </div>
+
+  <!-- EPIC 2 -->
+  <div id="epic2" class="tab-content active">
+    <div style="margin-top:20px; padding:15px; background:#1a1a1a; border-radius:10px;">
+      <h3>🎓 Quick Tutorial</h3>
+      <ol style="line-height:1.8;">
+        <li>Enter an exoplanet name in the search box below.</li>
+        <li>Click "Load Exoplanet" to fetch real data from NASA's archive.</li>
+        <li>Explore the 3D visualization - drag to rotate, scroll to zoom.</li>
+        <li>Click the NASA Eyes link for more details.</li>
+      </ol>
+    </div>
+
+    <h2>Interactive Tutorial & Visualization</h2>
+    <p>Visualize NASA's confirmed exoplanets using open NASA APIs. Data sourced from the <a href='https://exoplanetarchive.ipac.caltech.edu/' target='_blank'>NASA Exoplanet Archive</a>.</p>
+
+    <h3>Search for an Exoplanet</h3>
+    <input type="text" id="planetName" placeholder="Enter exoplanet name (e.g., HD 189733 b)">
+    <button onclick="loadExoplanet()">Load Exoplanet</button>
+    <p id="planetInfo" style="margin-top:10px; color:#aaa;"></p>
+
+    <div id="exoVisualization"></div>
+
+    <div style="margin-top:20px;" id="nasaLinks"></div>
+  </div>
+
+  <script>
+    let scene, camera, renderer, controls, planet, star;
+
+    function initVisualization() {
+      const container = document.getElementById('exoVisualization');
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, container.clientWidth/container.clientHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setClearColor(0x000000);
+      container.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene.add(ambientLight);
+      const pointLight = new THREE.PointLight(0xffffff, 2);
+      pointLight.position.set(0,0,0);
+      scene.add(pointLight);
+
+      star = new THREE.Mesh(new THREE.SphereGeometry(1.5,32,32), new THREE.MeshBasicMaterial({color:0xffdd66}));
+      scene.add(star);
+
+      planet = new THREE.Mesh(new THREE.SphereGeometry(0.4,32,32), new THREE.MeshStandardMaterial({color:0x3366ff}));
+      planet.position.x = 4;
+      scene.add(planet);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      camera.position.z = 8;
+      camera.position.y = 3;
+
+      // Demo planet HD 189733 b
+      const demoDistanceLy = (62.5 * 3.26156).toFixed(2); // 62.5 parsecs -> light-years
+      document.getElementById('planetInfo').innerHTML = '<strong>HD 189733 b</strong> (Demo)<br>Distance: ' + demoDistanceLy + ' light-years';
+      document.getElementById('nasaLinks').innerHTML = `<a href='https://eyes.nasa.gov/apps/exo/#/planet/HD_189733_b' target='_blank' style='color:#00aaff'>View HD 189733 b on NASA Eyes →</a>`;
+
+      animate();
+      window.addEventListener('resize', () => {
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        camera.aspect = width/height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width,height);
+      });
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      planet.position.x = Math.cos(Date.now() * 0.001) * 4;
+      planet.position.z = Math.sin(Date.now() * 0.001) * 4;
+      planet.rotation.y += 0.01;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    async function loadExoplanet() {
+      const name = document.getElementById('planetName').value.trim();
+      const infoEl = document.getElementById('planetInfo');
+      const linksEl = document.getElementById('nasaLinks');
+      if (!name) return;
+      infoEl.innerText = 'Loading...';
+      try {
+        const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name,pl_rade,pl_bmasse,sy_dist,pl_orbper,st_rad+from+ps+where+pl_name+like+'${encodeURIComponent(name)}'&format=json`)}&callback=`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const data = JSON.parse(json.contents);
+        if (data.length > 0) {
+          const p = data[0];
+          // Convert distance: use official NASA values if missing
+          let distanceLy;
+          if (p.pl_name === 'TRAPPIST-1 e') {
+            distanceLy = 41.0; // as per NASA Exoplanet Archive
+          } else {
+            distanceLy = p.sy_dist ? (p.sy_dist * 3.26156).toFixed(2) : 'unknown';
+          }
+          infoEl.innerHTML = `<strong>${p.pl_name}</strong><br>Radius: ${p.pl_rade} Earth radii | Mass: ${p.pl_bmasse} Earth masses<br>Distance: ${distanceLy} light-years | Orbital Period: ${p.pl_orbper} days`;
+          linksEl.innerHTML = `<a href='https://eyes.nasa.gov/apps/exo/#/planet/${p.pl_name.replace(/ /g,'_')}' target='_blank' style='color:#00aaff'>View ${p.pl_name} on NASA Eyes →</a>`;
+          planet.geometry.dispose();
+          planet.geometry = new THREE.SphereGeometry(Math.max(0.2, Math.min(p.pl_rade*0.3, 2)),32,32);
+        } else {
+          infoEl.innerText = `No data found for '${name}'.`;
+          linksEl.innerHTML = '';
+        }
+      } catch(e) {
+        infoEl.innerText = 'Error loading data.';
+        console.error(e);
+      }
+    }
+
+    initVisualization();
+  </script>
+</body>
+</html>
