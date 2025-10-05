@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exoplanet Visualizer Tabs (EPIC 1 & 3)</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    body { margin: 0; background-color: black; color: white; font-family: Arial, sans-serif; }
+    .tabs { display: flex; justify-content: center; gap: 10px; background: #111; padding: 10px; }
+    .tab { padding: 10px 20px; cursor: pointer; border-radius: 10px; background: #333; color: white; }
+    .tab.active { background: #0077ff; }
+    .tab-content { display: none; padding: 20px; }
+    .tab-content.active { display: block; }
+    #exoVisualization { width: 100%; height: 500px; border: 1px solid #555; border-radius: 10px; margin-top: 10px; }
+    input, button { margin-top: 10px; }
+    #planetInfo { color: #00ff88; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">🚀 ExoVision: AI for Exoplanet Discovery</h1>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="epic1">EPIC 1 - Pro/Amateur Hunters</div>
+    <div class="tab" data-tab="epic0">EPIC 3 - Future Work</div>
+  </div>
+
+  <!-- EPIC 1 -->
+  <div id="epic1" class="tab-content active">
+    <h2>Upload and Submit Exoplanet Data</h2>
+    <input type="file" accept=".csv" id="fileInput"><br>
+    <button onclick="classifyData()">Classify Data</button>
+    <button onclick="submitData()">Submit Data</button>
+    <p id="status"></p>
+
+    <h3>Visualize New Exoplanets (Demo Loaded by Default)</h3>
+    <p style="color:#aaa;">Instruction: CSV should have a column named <strong>pl_name</strong> with exoplanet IDs (e.g., HD_189733_b, 55_Cnc_e) similar to K2 dataset. Example columns: pl_name, pl_rade, pl_bmasse, sy_dist, pl_orbper, st_rad.</p>
+
+    <input type="text" id="planetInput" placeholder="Enter pl_name from CSV">
+    <button onclick="visualizeCSVPlanet()">Visualize</button>
+    <p id="planetInfo"></p>
+    <div id="exoVisualization"></div>
+  </div>
+
+  <!-- EPIC 3 -->
+  <div id="epic0" class="tab-content">
+    <h2>Hyperparameter Tuning (Coming Soon)</h2>
+    <p>Future integration for ML experts to tweak hyperparameters and retrain models interactively.</p>
+  </div>
+
+  <script>
+    let csvData = [];
+    let scene, camera, renderer, controls, planetMesh, starMesh;
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+      });
+    });
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const text = event.target.result;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',');
+        csvData = lines.slice(1).map(line => {
+          const values = line.split(',');
+          let obj = {};
+          headers.forEach((h, i) => obj[h.trim()] = values[i].trim());
+          return obj;
+        });
+        document.getElementById('status').innerText = 'CSV loaded. You can now visualize planets using their pl_name.';
+      };
+      reader.readAsText(file);
+    });
+
+    function submitData() {
+      document.getElementById('status').innerText = 'Submitting new data... (simulated)';
+      setTimeout(() => document.getElementById('status').innerText = 'Data submitted successfully! Ready to classify.', 1500);
+    }
+
+    function classifyData() {
+      document.getElementById('status').innerText = 'Classifying new data... (simulated)';
+      setTimeout(() => document.getElementById('status').innerText = 'Classification complete. Visualization updated.', 1500);
+    }
+
+    function initVisualization(container) {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.innerHTML = '';
+      container.appendChild(renderer.domElement);
+
+      const light = new THREE.PointLight(0xffffff, 1.5);
+      light.position.set(0,0,0);
+      scene.add(light);
+
+      starMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5,32,32), new THREE.MeshBasicMaterial({ color: 0xffffaa }));
+      scene.add(starMesh);
+
+      planetMesh = new THREE.Mesh(new THREE.SphereGeometry(0.3,32,32), new THREE.MeshStandardMaterial({ color: 0x3366ff }));
+      planetMesh.position.x = 4;
+      scene.add(planetMesh);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      camera.position.z = 8;
+      camera.position.y = 3;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        planetMesh.position.x = Math.cos(Date.now() * 0.001) * 4;
+        planetMesh.position.z = Math.sin(Date.now() * 0.001) * 4;
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+    }
+
+    function visualizeCSVPlanet(defaultName='HD_189733_b') {
+      const planetName = document.getElementById('planetInput').value.trim() || defaultName;
+      const planetInfo = document.getElementById('planetInfo');
+      let planetData = csvData.find(p => p.pl_name === planetName);
+      
+      // Demo if CSV not loaded or planet not found
+      if (!planetData) {
+        const demoPlanets = {
+          'HD_189733_b': { pl_name: 'HD_189733_b', pl_rade: 1.138, pl_bmasse: 1.13, sy_dist: 19.3, pl_orbper: 2.219, st_rad: 0.805 },
+          'TRAPPIST-1_e': { pl_name: 'TRAPPIST-1_e', pl_rade: 0.91, pl_bmasse: 0.62, sy_dist: 12.1, pl_orbper: 6.1, st_rad: 0.121 }
+        };
+        planetData = demoPlanets[planetName] || demoPlanets['HD_189733_b'];
+      }
+
+      planetInfo.innerHTML = `<strong>${planetData.pl_name}</strong><br>Radius: ${planetData.pl_rade || 'N/A'} Earth radii | Mass: ${planetData.pl_bmasse || 'N/A'} Earth masses<br>Distance: ${planetData.sy_dist ? (planetData.sy_dist * 3.26156).toFixed(2) + ' ly' : 'N/A'} | Orbital Period: ${planetData.pl_orbper || 'N/A'} days<br><a href='https://eyes.nasa.gov/apps/exo/#/planet/${planetData.pl_name}' target='_blank' style='color:#00aaff'>View ${planetData.pl_name} on NASA Eyes →</a>`;
+
+      const container = document.getElementById('exoVisualization');
+      if (!scene) initVisualization(container);
+
+      const scaledRadius = Math.max(0.2, Math.min((planetData.pl_rade || 1) * 0.3, 2));
+      planetMesh.geometry.dispose();
+      planetMesh.geometry = new THREE.SphereGeometry(scaledRadius,32,32);
+
+      const starRadius = planetData.st_rad || 1;
+      starMesh.geometry.dispose();
+      starMesh.geometry = new THREE.SphereGeometry(starRadius,32,32);
+    }
+
+    // Initialize with demo planet by default
+    window.onload = () => visualizeCSVPlanet();
+  </script>
+</body>
+</html>
