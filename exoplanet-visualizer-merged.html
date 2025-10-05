@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ExoVision: AI for Exoplanet Discovery</title>
+  <title>🚀 Æxo Planetiers: The Exoplanet Discovery Tool</title>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
@@ -37,13 +37,13 @@
   </style>
 </head>
 <body>
-  <h1 style="text-align:center;">🚀 ExoVision: AI for Exoplanet Discovery</h1>
+  <h1 style="text-align:center;">🚀 Æxo Planetiers: The Exoplanet Discovery Tool</h1>
 
   <div class="tabs">
-    <div class="tab active" data-tab="epic1">EPIC 1 - Pro/Amateur Hunters</div>
-    <div class="tab" data-tab="epic2">EPIC 2 - Novice Explorers</div>
-    <div class="tab" data-tab="epic3">EPIC 3 - Future Work</div>
-    <div class="tab" data-tab="epic4">🤖 Exo AI Agent</div>
+    <div class="tab active" data-tab="epic1">Play with New Data</div> <!-- For Pro/Amateur Exo Hunters -->
+    <div class="tab" data-tab="epic2">Interact with Exoplanets</div> <!-- For Novice Explorers -->
+    <div class="tab" data-tab="epic3">Hyperparameter Tuning (Advanced)</div> <!-- For ML Expert + Pro/Amateur Hunters -->
+    <div class="tab" data-tab="epic4">🤖 Exo AI Agent</div> <!-- For All -->
   </div>
 
   <!-- EPIC 1: Pro/Amateur Hunters -->
@@ -52,8 +52,8 @@
     <p style="color:#aaa;">For professional and amateur astronomers to upload custom exoplanet datasets for classification and visualization.</p>
     
     <input type="file" accept=".csv" id="fileInput"><br>
-    <button onclick="classifyData()">Classify Data</button>
-    <button onclick="submitData()">Submit Data</button>
+    <button onclick="classifyData()">Is it a real Exoplanet?</button>
+    <button onclick="submitData()">Submit to Model</button>
     <p id="status" style="color:#00ff88; margin-top:10px;"></p>
 
     <h3>Visualize Exoplanets from CSV</h3>
@@ -73,7 +73,7 @@
         <li>Enter an exoplanet name in the search box or select from the dropdown.</li>
         <li>Click "Load Exoplanet" to fetch real data from NASA's archive.</li>
         <li>Explore the 3D visualization - drag to rotate, scroll to zoom.</li>
-        <li>Click the NASA Eyes link for more details.</li>
+        <li>Click the Eyes on Exoplanets link for more details.</li>
       </ol>
     </div>
 
@@ -568,7 +568,7 @@ Response:
         planetData = demoPlanets[planetName] || demoPlanets['HD 189733 b'];
       }
 
-      planetInfo.innerHTML = `<strong>${planetData.pl_name}</strong><br>Radius: ${planetData.pl_rade || 'N/A'} Earth radii | Mass: ${planetData.pl_bmasse || 'N/A'} Earth masses<br>Distance: ${planetData.sy_dist ? (planetData.sy_dist * 3.26156).toFixed(2) + ' ly' : 'N/A'} | Orbital Period: ${planetData.pl_orbper || 'N/A'} days<br><a href='https://eyes.nasa.gov/apps/exo/#/planet/${planetData.pl_name.replace(/ /g,'_')}' target='_blank'>View ${planetData.pl_name} on NASA Eyes →</a>`;
+      planetInfo.innerHTML = `<strong>${planetData.pl_name}</strong><br>Radius: ${planetData.pl_rade || 'N/A'} Earth radii | Mass: ${planetData.pl_bmasse || 'N/A'} Earth masses<br>Distance: ${planetData.sy_dist ? (planetData.sy_dist * 3.26156).toFixed(2) + ' ly' : 'N/A'} | Orbital Period: ${planetData.pl_orbper || 'N/A'} days<br><a href='https://eyes.nasa.gov/apps/exo/#/planet/${planetData.pl_name.replace(/ /g,'_')}' target='_blank'>View ${planetData.pl_name} on Eyes on Exoplanets →</a>`;
 
       const container = document.getElementById('exoVisualization1');
       if (!scene1) initVisualization1(container);
@@ -745,8 +745,8 @@ Response:
         } else {
           setTimeout(() => {
             const nasaEyesName = name.replace(/ /g, '_');
-            infoEl.innerHTML = `<span style="color: #ff6666;">❌ Planet '${name}' not found in database</span><br><br>Try: HD 189733 b, Kepler-452 b, TRAPPIST-1 e, GJ 1132 c, Proxima Centauri b<br><br>💡 However, you can still view it on NASA Eyes if it exists:`;
-            linksEl.innerHTML = `<a href='https://eyes.nasa.gov/apps/exo/#/planet/${nasaEyesName}' target='_blank' style='color:#00aaff'>🔭 Try viewing ${name} on NASA Eyes →</a>`;
+            infoEl.innerHTML = `<span style="color: #ff6666;">❌ Planet '${name}' not found in database</span><br><br>Try: HD 189733 b, Kepler-452 b, TRAPPIST-1 e, GJ 1132 c, Proxima Centauri b<br><br>💡 However, you can still view it on Eyes on Exoplanets if it exists:`;
+            linksEl.innerHTML = `<a href='https://eyes.nasa.gov/apps/exo/#/planet/${nasaEyesName}' target='_blank' style='color:#00aaff'>🔭 Try viewing ${name} on Eyes on Exoplanets →</a>`;
           }, 500);
         }
       }
@@ -764,9 +764,9 @@ Response:
       
       infoEl.innerHTML = `${dataSource}<br><br><strong>${p.pl_name}</strong><br>Radius: ${p.pl_rade || 'N/A'} Earth radii | Mass: ${p.pl_bmasse || 'N/A'} Earth masses<br>Distance: ${distanceLy} light-years | Orbital Period: ${p.pl_orbper || 'N/A'} days${additionalInfo}`;
       
-      // Dynamic NASA Eyes link - replaces spaces with underscores
+      // Dynamic Eyes on Exoplanets link - replaces spaces with underscores
       const nasaEyesName = p.pl_name.replace(/ /g, '_');
-      linksEl.innerHTML = `<a href='https://eyes.nasa.gov/apps/exo/#/planet/${nasaEyesName}' target='_blank' style='color:#00aaff'>🔭 View ${p.pl_name} on NASA Eyes →</a> | <a href='https://exoplanetarchive.ipac.caltech.edu/overview/${nasaEyesName}' target='_blank' style='color:#00aaff'>📊 NASA Archive Details →</a>`;
+      linksEl.innerHTML = `<a href='https://eyes.nasa.gov/apps/exo/#/planet/${nasaEyesName}' target='_blank' style='color:#00aaff'>🔭 View ${p.pl_name} on Eyes on Exoplanets →</a> | <a href='https://exoplanetarchive.ipac.caltech.edu/overview/${nasaEyesName}' target='_blank' style='color:#00aaff'>📊 NASA Archive Details →</a>`;
       
       if (planet2) {
         planet2.geometry.dispose();
